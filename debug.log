@@ -1,0 +1,14 @@
+Debug is on.
+Skipping method BUILD
+Adding debugger for method test_method
+Skipping method DESTROY
+Skipping method new
+Skipping method meta
+test_method called with parameters: $VAR1 = [
+          'Blarg'
+        ];
+
+test_method returned: $VAR1 = [
+          1
+        ];
+
