@@ -33,6 +33,11 @@ parameter skip_methods => (
    }
 );
 
+parameter skip_attrs => ( 
+   required => 1,
+   default => 1
+);
+
 role { 
    my $p = shift;
    my %args = @_;
@@ -47,11 +52,26 @@ role {
          my @method_list = $consumer->get_method_list();
          my %skipped = map { $_ => 1 } @{$p->skip_methods};
          $consumer->make_mutable;
+         if( $p->skip_attrs ) { 
+            # Since we've a Moose class, attributes are tricky.  
+            # First, we find all the methods attributes have as
+            # readers/writors..
+            my @attributes = $consumer->get_all_attributes;
+            my %method_hash = map { $_ => 1 } @method_list;
+            foreach my $attr ( @attributes ) { 
+               my( $reader, $writer ) = ( $attr->get_read_method, $attr->get_write_method );
+               $reader && $skipped{$reader}++;
+               $writer && $skipped{$writer}++;
+            }
+         }
          foreach my $method ( @method_list ) {
+
+            # Skip over some generally bad-to-debug methods..
             if( $skipped{$method} ) { 
                $p->{logger}->debug("Skipping method $method");
                next;
             }
+
             $p->{logger}->debug('Adding debugger for method ' . $method );
             $consumer->add_around_method_modifier($method, sub { 
                my $orig = shift;
@@ -87,13 +107,16 @@ MooseX::Role::Debugger - Automatically add debugging output with a role
 ..and later..
 
  $some_moose_class->foo();   
- # foo called with parameters: $VAR1 = [
- #    ... 
- # ]
- # (whatever foo may have done)
- # foo returned: $VAR1 = [ 
- #    ... 
- # ]
+ 
+..you get some output..
+
+  foo called with parameters: $VAR1 = [
+     ... 
+  ]
+  (whatever foo may have done)
+  foo returned: $VAR1 = [ 
+     ... 
+  ]
 
 =head1 DESCRIPTION
 
@@ -109,7 +132,7 @@ the 'Screen' and 'File' outputs (the 'File' output uses a filename C<debug.log>)
 MooseX::Role::Debugger makes use of parameterized roles, so you may pass some extra
 information to your role in the C<with> statement.  The syntax is fairly straightforward:
 
-   with 'MooseX::Role::Debugger' => { debug => 1, logger => $log_obj };
+ with 'MooseX::Role::Debugger' => { debug => 1, logger => $log_obj };
 
 Though the defaults are fairly sensible.  If you feel the need to contradict me and 
 supply your own options, they are:
@@ -133,21 +156,27 @@ things.
 This is an array reference containing the names of any methods you'd like to skip when adding
 debugging.  The current list is:
 
-    BUILD 
-    BUILDALL
-    BUILDARGS
-    DESTROY 
-    can
-    does
-    DOES
-    dump
-    new
-    meta
-
-=back
+ BUILD 
+ BUILDALL
+ BUILDARGS
+ DESTROY 
+ can
+ does
+ DOES
+ dump
+ new
+ meta
 
 If you provide an alternate list, please be aware that you should also include these items.  
 Were I you, I wouldn't worry about changing it at all.
+
+=item skip_attrs
+
+Attributes are skipped over automatically.  Attributes that have explicit (and differently-named)
+accessors or mutators (via the C<reader> or C<writer> bits) are handled properly.  Set this
+to something false to turn this behaviour off.
+
+=back
 
 =head1 AUTHOR
 
