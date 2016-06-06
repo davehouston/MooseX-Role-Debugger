@@ -187,7 +187,7 @@ L<Log::Dispatch>, L<Moose>, L<MooseX::Role::Parameterized>
 
 =head1 BUGS
 
-Probably
+Probably.  See github at <https://github.com/ew73/MooseX-Role-Debugger>.
 
 =head1 LICENSE
 
