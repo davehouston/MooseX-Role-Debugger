@@ -1,0 +1,2 @@
+test:
+	prove -lovr t/

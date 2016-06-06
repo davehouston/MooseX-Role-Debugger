@@ -3,6 +3,9 @@ use MooseX::Role::Parameterized;
 use Log::Dispatch;
 use Data::Dumper;
 
+our $VERSION = '1.00';
+
+
 parameter debug => ( 
    required => 1,
    default => 1
@@ -18,18 +21,10 @@ parameter logger => (
 );
 
 parameter skip_methods => ( 
-   default => sub { [qw(
-      BUILD
-      BUILDALL
-      BUILDARGS
-      DESTROY 
-      can
-      does
-      DOES
-      dump
-      new
-      meta
-      )] 
+   default => sub { 
+      my @list = Moose::Object->meta->get_all_method_names;
+      push @list, 'can';
+      return \@list;
    }
 );
 
@@ -71,7 +66,6 @@ role {
                $p->{logger}->debug("Skipping method $method");
                next;
             }
-
             $p->{logger}->debug('Adding debugger for method ' . $method );
             $consumer->add_around_method_modifier($method, sub { 
                my $orig = shift;
@@ -79,7 +73,7 @@ role {
                $p->{logger}->debug( $method  . ' called with parameters: ' . Dumper(\@_) );
                my @results = $class->$orig(@_);
                $p->{logger}->debug( $method . ' returned: ' . Dumper(\@results) );
-               return @results;
+               return wantarray ? @results : "@results";
             });
          }
          $consumer->make_immutable;
@@ -154,18 +148,19 @@ things.
 =item skip_methods
 
 This is an array reference containing the names of any methods you'd like to skip when adding
-debugging.  The current list is:
+debugging.  The list is obtained by querying the method names from C<<Moose::Object->meta>>. 
+At the time, this is:
 
- BUILD 
- BUILDALL
- BUILDARGS
- DESTROY 
- can
- does
- DOES
  dump
- new
+ BUILDALL
+ DESTROY
+ DEMOLISHALL
  meta
+ BUILDARGS
+ does
+ new
+ DOES
+ can
 
 If you provide an alternate list, please be aware that you should also include these items.  
 Were I you, I wouldn't worry about changing it at all.

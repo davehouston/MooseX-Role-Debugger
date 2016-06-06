@@ -1,8 +1,8 @@
-package Tester::TestClass;
+package TestClass4;
 use Moose;
 use Log::Dispatch;
 
-with 'MooseX::Role::Debugger';
+with 'MooseX::Role::Debugger' => { debug => 0 };
 
 has 'an_attr' => (
    is => 'rw',
